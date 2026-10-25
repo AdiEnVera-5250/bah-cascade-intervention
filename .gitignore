@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+
+# Herramientas
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
+
+# Sistema operativo
+Thumbs.db
+.DS_Store
+
+# Datos generados (ver results/README.md y reports/README.md)
+results/*
+!results/.gitignore
+!results/README.md
+reports/*
+!reports/.gitignore
+!reports/README.md
