@@ -65,7 +65,7 @@ without execution outputs.
 
 | Phase | Status | Goal | Exit criterion |
 |---|---|---|---|
-| 0. Repository baseline | in progress | Coherent repo, no stale artifacts | `uv sync` works; clean tree |
+| 0. Repository baseline | completed | Coherent repo, no stale artifacts | `uv sync` works; clean tree |
 | 1. Deterministic core | pending | Correct networks and cascades | `ruff` and `pytest` green |
 | 2. Minimum functional pipeline | pending | Contract-valid run plus demo notebook | Smoke run validates; notebook runs |
 | 3. Descriptive analysis | pending | Answer the study questions | Reports generated from a validated run |
@@ -73,20 +73,20 @@ without execution outputs.
 
 ### Phase 0 — Repository baseline
 
-**Status:** in progress.
+**Status:** completed.
 
 Tasks:
 
 - [x] Delete stale artifacts from the previous architecture:
   `results/calibration__*/`, `results/calibration_*.log`, and
   `results/benchmark.csv`.
-- [ ] Create `src/bah_cascade/__init__.py` so the declared package builds.
+- [x] Create `src/bah_cascade/__init__.py` so the declared package builds.
 - [x] Update `AGENTS.md`: remove `docs/decisions/` from the source-of-truth list
   and renumber the remaining entries.
 - [x] Update `README.md`: replace the planned ADR line with a reference to
   `docs/roadmap.md`.
 - [x] Write this roadmap.
-- [ ] Commit the current documentation set: `model.md`, `data-contracts.md`,
+- [x] Commit the current documentation set: `model.md`, `data-contracts.md`,
   `roadmap.md`, and the cleaned tree.
 
 Exit criteria:
