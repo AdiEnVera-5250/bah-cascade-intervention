@@ -1,161 +1,131 @@
 # AGENTS.md
 
-## Purpose
+## Scope
 
-This repository contains a research project on how network growth mechanisms and group-level interventions affect cascade dynamics in social networks.
+Research project on network growth with homophily, phased group interventions, and
+threshold cascades. The scientific specification lives in `docs/model.md`. This
+file governs only how work is done in this repository.
 
-The project combines stochastic network generation with homophily and group-size interventions, threshold-based cascade simulations, Monte Carlo experiments, and statistical analysis of the resulting cascades.
+## Language
 
-The project must support two first-class capabilities:
+All repository content is in English: code, identifiers, docstrings, comments,
+documentation, commit messages, error messages, log messages, test names, and
+filenames. No other language is permitted.
 
-1. Generating reproducible datasets from network and cascade simulations.
-2. Analyzing those datasets through dedicated analysis workflows.
+## Source of truth
 
-Data generation and analysis must remain clearly separated, but both are part of the project scope. The project is not limited to producing raw simulation outputs; it must also support the statistical and comparative analyses required by the research questions.
+1. `AGENTS.md` — working rules.
+2. `docs/model.md` — model, assumptions, and parameters.
+3. `docs/data-contracts.md` — CSV columns and `schema_version`.
+4. `docs/roadmap.md` — phase status.
 
-The main comparisons involve:
+If two documents conflict, the lower number prevails. If that rule does not
+resolve the conflict, stop and ask.
 
-- Intervened networks versus non-intervened or baseline networks.
-- Networks with different homophily regimes.
-- Cascades initiated from random seeds and from seeds sampled within specific groups.
-- Cascade outcomes across groups, network configurations, and intervention settings.
+## Branch
 
-All experiments must be reproducible from configuration, explicit random seeds, and recorded metadata.
+- `restart` is the only working branch. All work is committed there.
+- `main` exists but is not a reference. Do not use it, merge from it, or commit to
+  it.
+- Conventional commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`), one topic
+  per commit.
+- Never rewrite history or force-push.
+- No opportunistic refactors or reformatting. Do not touch files unrelated to the
+  task.
 
-## Scientific Scope
+## Ambiguity and contradictions
 
-### Network Growth with Homophily
+- If a request is ambiguous, contradictory, or underspecified, do not guess. Stop
+  before changing files and return a short numbered list of concrete questions
+  (at most five), each stating the decision required and the available options.
+- If the request conflicts with this file or with `docs/`, state the conflict
+  explicitly and ask before proceeding.
+- Read `docs/model.md` first. Ask only about what is genuinely unspecified there.
+- Never resolve ambiguity by choosing a default silently.
 
-Implement a growing undirected network model with two groups, a minority and a majority.
+## Requires explicit approval
 
-Core ingredients:
+- Adding or updating dependencies.
+- Changing public interfaces or data contracts.
+- Modifying `docs/model.md`, `docs/data-contracts.md`, or the RNG module.
+- Changing architecture, directory structure, or module names.
+- Altering scientific assumptions or default model parameters.
+- Writing outside the paths named in the task.
+- Adding a top-level directory.
 
-- Preferential attachment.
-- A tunable homophily parameter `h` in `[0, 1]`.
-- Group sizes controlled by the minority fraction.
-- Symmetric homophily by default:
-  - `h_aa = h_bb = h`
-  - `h_ab = h_ba = 1 - h`
-- Asymmetric homophily may be supported only if explicitly requested.
-- Attachment probability must depend on node degree and the homophily between node groups.
-- The model must support configurable network size, initial seed network, number of links per arriving node, minority fraction, and homophily.
+## Implementation
 
-### Two-Phase Network Growth Interventions
+- Python with `src/` layout.
+- `snake_case` for modules, functions, and variables; `PascalCase` only for
+  classes; `UPPER_SNAKE_CASE` for constants.
+- Type hints on every public function and on non-trivial internal functions.
+- No magic numbers: parameters arrive through configuration.
+- Comments only for non-obvious decisions (mathematics, reproducibility,
+  algorithms). Never restate the code.
+- Small functions; keep generation, simulation, metric computation, and
+  persistence separate.
+- `logging`, never `print`, except in user-facing scripts.
+- Run artifacts are written only by the experiment runner. Analysis reads
+  `results/` and writes only to `reports/`.
+- Documentation lives in `docs/`. Do not create per-directory README files; if a
+  directory needs explanation, add it to `docs/`.
 
-Implement a two-phase growth process in which homophily and group sizes may change over time.
+## Reproducibility
 
-Default assumptions:
+- Every stochastic process receives an explicit `numpy.random.Generator`.
+- Never use the global state of `numpy.random` or `random`.
+- Sequences derive from a master seed through `SeedSequence`.
+- Seed and resolved parameters are recorded in run metadata.
 
-- Pre-intervention phase: growth under initial homophily and initial minority fraction.
-- Post-intervention phase: growth under updated homophily and/or updated minority fraction.
-- Phase lengths must remain configurable.
-- Interventions may change:
-  - Group size: quota or minority fraction in arriving nodes.
-  - Behaviour: homophily parameter.
-- The implementation must allow comparing:
-  - Pre-intervention network.
-  - Post-intervention network.
-  - Baseline networks generated under pure homophily or other reference conditions.
+## Tests
 
-### Threshold Cascades
+- A test exists to detect the breakage of an invariant, a rule, or a contract. If
+  it cannot fail, it is not written.
+- Prohibited: tautologies, comparing a function with its own formula, trivial
+  snapshots, tests that only assert that no exception is raised (unless "no
+  exception" is the contract), and tests of the standard library or third-party
+  libraries.
+- Expected values are computed by hand on small cases; never copied from the
+  implementation.
+- Every fixed bug leaves a regression test.
+- Never weaken an assertion to make a test pass. If test and code disagree,
+  decide which is correct from `docs/model.md`; if it is not evident, ask.
+- One behavior per test. Name: `test_<subject>_<expected>_when_<condition>`.
+- Unit tests touch neither the network nor the filesystem. Integration tests use
+  `tmp_path` and small graphs.
+- Stochastic cases use a fixed seed and an exact assertion, or a justified wide
+  tolerance. No tight statistical assertions.
 
-Implement a threshold cascade process on an existing undirected network.
+## Verification
 
-Core rule:
+Before declaring a task done, run:
 
-- Each node has a threshold `phi_i`.
-- A node becomes active if the fraction of its active neighbours is at least its threshold.
-- Updates are synchronous by default.
-- Isolated nodes must be handled explicitly.
-- The initial seed or seeds must be configurable.
-- The model must support seeds sampled uniformly at random and seeds sampled from a specified group.
+```powershell
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest
+```
 
-Each cascade simulation must record at least:
+If any of them fails, the task is not done.
 
-- Absolute cascade size.
-- Relative cascade size with respect to the whole network.
-- Number and fraction of affected nodes by group.
-- Whether the cascade is global according to a configurable threshold.
-- Stopping time in iterations.
-- Initial seed metadata.
+## Hygiene
 
-### Metrics and Analysis
+- Do not commit datasets, figures, logs, or artifacts.
+- Keep the root minimal: project metadata, package source, tests, docs, notebooks,
+  and configuration modules only.
+- One dependency manager only: `uv`, with `uv.lock` committed.
+- One Python version, pinned in `.python-version`.
 
-The project must support both raw per-simulation outputs and aggregated per-network outputs.
+## Current phase
 
-Summary statistics should include, where applicable:
+Do not start a phase without explicit authorization. Phase status lives in
+`docs/roadmap.md`. Model implementation does not start until `docs/model.md`
+exists.
 
-- Mean.
-- Median.
-- Standard deviation.
-- Quartiles.
-- Global-cascade probability.
-- Statistics separated by seed group and overall.
+## Definition of done
 
-The analysis workflows must be able to consume the generated datasets and produce comparative analyses between networks, interventions, groups, and cascade regimes.
-
-## Development Rules
-
-- Use Python.
-- Use `pip`-compatible dependency management.
-- Declare dependencies explicitly. Prefer `pyproject.toml`; `requirements.txt` is acceptable if the project is not packaged yet.
-- Use a `src/` layout for the Python package.
-- Do not use notebooks for the main implementation. Exploratory notebooks may exist, but reusable logic must live in source files.
-- Use `snake_case` for modules, files, functions, and variables.
-- Use `PascalCase` only for classes when classes are necessary.
-- Use `UPPER_SNAKE_CASE` for constants.
-- Add type hints to public functions and important internal functions.
-- Keep comments to a minimum.
-- Functions must be understandable from their names and structure without comments.
-- Comments are allowed only for non-obvious mathematical, algorithmic, or reproducibility decisions.
-- Avoid large functions. Separate generation, simulation, metric computation, aggregation, and persistence.
-- Avoid hardcoded numeric parameters in model or experiment code. Pass them through configuration objects.
-- Do not name source files after researchers. Use descriptive domain names that express what the module does.
-- Use deterministic random seeds for every stochastic process.
-- Never rely on global random state implicitly. Prefer explicit `numpy.random.Generator` instances.
-- Use `logging`, not `print`, for experiment progress and diagnostics.
-- Do not commit generated datasets, figures, or large output files.
-- Do not add new dependencies without explicit approval.
-- Do not change scientific assumptions or public interfaces without explicit approval.
-- Prefer clear, correct code over premature optimization.
-- Use `numpy` for numerical operations, `networkx` for graph manipulation where clarity matters, and `pandas` for tabular outputs.
-- Use `pytest` for tests unless the project explicitly adopts another test runner.
-- Unit tests must cover model invariants, cascade rules, metric calculations, and aggregation logic.
-- Integration tests should use small networks and short simulations.
-- Keep experiments reproducible from configuration and seeds.
-- Ask before adding dependencies, changing architecture, or altering scientific assumptions.
-- Do not invent missing model parameters silently. Make them configurable or ask for clarification.
-- Keep changes small and reviewable.
-
-## Architecture
-
-Package under `src/bah_cascade/`, with a strict separation between generation and analysis:
-
-- `config/` — experiment specification as pure Python modules (`DESIGN` + `build_experiment`), validation, design expansion, run snapshot.
-- `rng.py` — deterministic stream derivation from a master seed through `numpy.random.SeedSequence` keys.
-- `networks/` — initial graph, exact shuffled group quotas, homophilic preferential attachment, paired phase conditions, structural metrics.
-- `cascades/` — thresholds, seed sampling, synchronous threshold-cascade engine.
-- `experiments/` — Monte Carlo orchestration, persistence, scale benchmark. The only layer allowed to write files.
-- `analysis/` — read-only workflows over generated CSV datasets.
-
-Data contracts: `networks.csv`, `cascades.csv`, and an optional `cascade_trajectory.csv`.
-`results/` and `reports/` hold generated artifacts and are ignored by git.
-
-Each directory documents its modules, public functions, invariants, and implementation phase in a local `README.md`.
-That file is the canonical context source when resuming work.
-
-## Implementation Plan
-
-| Phase | Scope | Status |
-|---|---|---|
-| 0 | Model specification and ADRs in `docs/` | pending authorization |
-| 1 | Skeleton: package, config, rng, CLI, test harness | pending authorization |
-| 2 | Network growth: initial graph, quotas, attachment, metrics | pending |
-| 3 | Paired two-phase conditions | pending |
-| 4 | Cascade engine, thresholds, seeds, scale benchmark | pending |
-| 5 | Monte Carlo runner, persistence, resume | pending |
-| 6 | Analysis workflows and figures | pending |
-| 7 | Calibration runs, example configs, README | pending |
-
-Scaffolding (directories, packaging metadata, per-directory documentation) is complete.
-Do not begin a phase without explicit user authorization.
+- The change addresses exactly the requested task.
+- New or updated tests cover the invariant that was touched.
+- `docs/` is updated only if a contract, assumption, or decision changed.
+- `ruff` and `pytest` pass.
+- No generated artifacts in the diff.

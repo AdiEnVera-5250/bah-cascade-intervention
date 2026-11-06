@@ -1,63 +1,58 @@
 # bah-cascade-intervention
 
-Proyecto de investigación sobre cómo los mecanismos de crecimiento de red y las
-intervenciones a nivel de grupo afectan la dinámica de cascadas en redes sociales.
+Research project on how network growth mechanisms and group-level interventions
+affect cascade dynamics in social networks.
 
-Combina generación estocástica de redes con homofilia y cuotas de grupo,
-simulación de cascadas de umbral, experimentos Monte Carlo y análisis estadístico
-de los resultados.
+The project combines stochastic network generation with homophily and group-size
+interventions, threshold cascade simulations, Monte Carlo experiments, and
+statistical analysis of the resulting cascades.
 
-## Estado
+## Status
 
-**Andamiaje creado. Fase 0 y Fase 1 pendientes de autorización.**
+Specification stage. The model and the data contracts are normative; no model code
+is implemented yet.
 
-Todavía no hay código de modelo ni de simulación. Cada directorio contiene un
-`README.md` con su responsabilidad, los módulos y funciones previstas, las
-invariantes que debe respetar y la fase en la que se implementa. Ese archivo es la
-fuente de verdad para recuperar contexto sin releer el código.
+- `docs/model.md` — network growth, cascade model, experimental design, metrics,
+  and analysis plan.
+- `docs/data-contracts.md` — files, columns, keys, invariants, and serialization.
 
-## Estructura
+## Design at a glance
+
+- Two groups `A` and `B`; a node joins `A` with probability `p`.
+- Homophily weight `h`, with a degree bag and rejection sampling for attachment.
+- Two-phase growth: `N1 = 250` nodes in phase 1 and `N2 = 250` in phase 2, so
+  `N = 500`.
+- Factor grids `H`, `P`, and `M` crossed, giving 75 baselines `(h1, p1, m)`;
+  `Phi` is applied to every network.
+- Full intervention grid: 24 interventions plus one control per baseline.
+- Pilot replication `R = 50`, that is, 93,750 networks and 187.5 million cascades.
+
+## Structure
 
 ```
-docs/          especificación del modelo, arquitectura y decisiones (ADR)
-configs/       módulos .py que describen experimentos
-src/           paquete bah_cascade
-tests/         unitarios, integración y fixtures
-results/       datasets generados (ignorados por git)
-reports/       análisis y figuras derivadas (ignorados por git)
+src/bah_cascade/   package
+tests/             test suite
+docs/              specification and contracts
+notebooks/         demonstration and analysis notebooks
+results/           generated datasets (ignored by git)
+reports/           derived analyses and figures (ignored by git)
 ```
 
-## Puesta en marcha
+## Setup
 
 ```powershell
-uv sync --extra dev
+uv sync
+uv run ruff check .
+uv run ruff format --check .
 uv run pytest
 ```
 
-El intérprete de referencia es Python 3.14 (`.python-version`). El proyecto exige
-`>=3.11`.
+Python 3.14 is the reference interpreter, pinned in `.python-version` and required
+by `pyproject.toml`. Dependencies are managed with `uv` and locked in `uv.lock`.
 
-## Decisiones de diseño vigentes
+## Documentation
 
-Resumen operativo; el detalle y la justificación viven en `docs/`.
-
-| Dimensión | Decisión |
-|---|---|
-| Umbral | Homogéneo global por defecto; vector por nodo opcional; resorteo `per_network` o `per_cascade` |
-| Semillas | Número absoluto y/o fracción del grupo; muestreo sin reemplazo |
-| Grupos | Cuota exacta por fase de llegada, orden barajado, método del resto mayor |
-| Red inicial | Grafo semilla configurable; defecto completo de `m+1` nodos |
-| Peso de adhesión cero | Nodo sin aristas, marcado `isolated_at_birth`; `zero_weight_fallback` configurable |
-| Comparación | `pre`, `intervenida` y `baseline` emparejadas por réplica con sorteos compartidos |
-| Cascada global | `size_rel >= cutoff` (defecto 0.5) |
-| Configuración | Módulos Python con `DESIGN` y `build_experiment(params)` |
-| Datos | CSV (gzip opcional) |
-| Escala | N = 1000 (500 + 500), `m ∈ {1,2}`, con benchmark disponible |
-| Dependencias | numpy, networkx, pandas, matplotlib; dev: pytest |
-
-## Documentación
-
-- `docs/README.md` — índice, decisiones y fase actual.
-- `src/bah_cascade/README.md` — flujo de datos y mapa del paquete.
-- `Monolith.py` — boceto original de referencia. No forma parte del paquete y no
-  debe copiarse.
+- `AGENTS.md` — working rules.
+- `docs/model.md` — model specification.
+- `docs/data-contracts.md` — CSV contracts.
+- `docs/roadmap.md` — phase status and exit criteria.
