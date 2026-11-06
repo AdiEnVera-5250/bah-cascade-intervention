@@ -21,7 +21,5 @@ Thumbs.db
 # Datos generados (ver results/README.md y reports/README.md)
 results/*
 !results/.gitignore
-!results/README.md
 reports/*
 !reports/.gitignore
-!reports/README.md

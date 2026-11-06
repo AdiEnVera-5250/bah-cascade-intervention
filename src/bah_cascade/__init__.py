@@ -1,3 +1,3 @@
-"""Paquete de generación y análisis de cascadas en redes con homofilia."""
+"""Network growth with homophily, phased interventions, and threshold cascades."""
 
 __all__: list[str] = []

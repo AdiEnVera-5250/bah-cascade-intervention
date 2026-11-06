@@ -5,9 +5,9 @@ build-backend = "hatchling.build"
 [project]
 name = "bah-cascade-intervention"
 version = "0.1.0.dev0"
-description = "Crecimiento de redes con homofilia, intervenciones por fases y cascadas de umbral."
+description = "Network growth with homophily, phased group interventions, and threshold cascades."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "numpy>=2.1",
     "networkx>=3.4",
@@ -15,13 +15,21 @@ dependencies = [
     "matplotlib>=3.10",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=8.3",
+    "ruff>=0.6",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bah_cascade"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
