@@ -9,7 +9,7 @@ from bah_cascade.growth import (
     _to_network,
     build_bipartite_seed,
     build_clique_components_seed,
-    build_random_complete_seed,
+    build_random_seed,
 )
 from bah_cascade.metrics import connected_components, network_metrics
 from bah_cascade.rng import make_rng
@@ -20,19 +20,16 @@ def _path_network() -> Network:
     return _to_network(adjacency, [GROUP_A, GROUP_B, GROUP_A, GROUP_B])
 
 
-def test_bipartite_metrics_count_four_cross_edges_when_m_is_one() -> None:
+def test_bipartite_metrics_reconcile_edge_types_when_m_is_one() -> None:
     metrics = network_metrics(build_bipartite_seed(1, make_rng(0)))
 
     assert metrics.n_A == 2
     assert metrics.n_B == 2
-    assert metrics.n_edges == 4
-    assert metrics.edges_cross == 4
+    assert metrics.n_edges >= 2
+    assert metrics.edges_cross == metrics.n_edges
     assert metrics.edges_within_A == 0
     assert metrics.edges_within_B == 0
-    assert metrics.n_components == 1
-    assert metrics.largest_component_size == 4
-    assert metrics.k_mean == 2.0
-    assert metrics.k_median == 2.0
+    assert metrics.k_min >= 1
     assert metrics.frac_A == 0.5
 
 
@@ -49,15 +46,14 @@ def test_clique_component_metrics_count_two_components_when_m_is_one() -> None:
     assert metrics.k_max == 1
 
 
-def test_random_complete_metrics_count_four_cross_edges_when_m_is_one() -> None:
-    metrics = network_metrics(build_random_complete_seed(1, make_rng(0)))
+def test_random_seed_metrics_reconcile_edge_types_when_h1_is_interior() -> None:
+    metrics = network_metrics(build_random_seed(1, 0.5, make_rng(0)))
 
-    assert metrics.n_edges == 6
-    assert metrics.edges_cross == 4
-    assert metrics.edges_within_A == 1
-    assert metrics.edges_within_B == 1
-    assert metrics.n_components == 1
-    assert metrics.k_mean == 3.0
+    assert metrics.n_edges == (
+        metrics.edges_cross + metrics.edges_within_A + metrics.edges_within_B
+    )
+    assert metrics.k_min >= 1
+    assert metrics.k_max >= metrics.k_min
 
 
 def test_degree_median_is_mean_of_central_values_when_count_is_even() -> None:

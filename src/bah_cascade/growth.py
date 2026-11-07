@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import combinations
 
 import numpy as np
 
@@ -112,17 +111,6 @@ def _to_network(adjacency: list[list[int]], groups: list[int]) -> Network:
     return Network(indptr, indices, np.asarray(groups, dtype=np.int8))
 
 
-def _adjacency_from_edges(
-    n_nodes: int,
-    edges: list[tuple[int, int]],
-) -> list[list[int]]:
-    adjacency: list[list[int]] = [[] for _ in range(n_nodes)]
-    for left, right in edges:
-        adjacency[left].append(right)
-        adjacency[right].append(left)
-    return adjacency
-
-
 def _bag_from_adjacency(adjacency: list[list[int]]) -> list[int]:
     bag: list[int] = []
     for node, neighbors in enumerate(adjacency):
@@ -130,78 +118,81 @@ def _bag_from_adjacency(adjacency: list[list[int]]) -> list[int]:
     return bag
 
 
-def _bipartite_seed_edges(
-    m: int, rng: np.random.Generator
-) -> tuple[list[tuple[int, int]], list[int]]:
+def _random_seed_adjacency(
+    m: int,
+    h1: float,
+    rng: np.random.Generator,
+) -> tuple[list[list[int]], list[int]]:
     n_side = m + 1
-    first_side_is_a = int(rng.integers(0, 2)) == 0
-    if first_side_is_a:
-        groups = [GROUP_A] * n_side + [GROUP_B] * n_side
-    else:
-        groups = [GROUP_B] * n_side + [GROUP_A] * n_side
-    left = range(n_side)
-    right = range(n_side, 2 * n_side)
-    edges = [(i, j) for i in left for j in right]
-    return edges, groups
-
-
-def _clique_component_seed_edges(
-    m: int, rng: np.random.Generator
-) -> tuple[list[tuple[int, int]], list[int]]:
-    n_side = m + 1
-    first_component_is_a = int(rng.integers(0, 2)) == 0
-    if first_component_is_a:
-        groups = [GROUP_A] * n_side + [GROUP_B] * n_side
-    else:
-        groups = [GROUP_B] * n_side + [GROUP_A] * n_side
-    first = list(combinations(range(n_side), 2))
-    second = list(combinations(range(n_side, 2 * n_side), 2))
-    return first + second, groups
-
-
-def _random_complete_seed_edges(
-    m: int, rng: np.random.Generator
-) -> tuple[list[tuple[int, int]], list[int]]:
-    n_nodes = 2 * (m + 1)
-    labels = np.asarray([GROUP_A] * (m + 1) + [GROUP_B] * (m + 1), dtype=np.int8)
+    n_nodes = 2 * n_side
+    labels = np.asarray([GROUP_A] * n_side + [GROUP_B] * n_side, dtype=np.int8)
     rng.shuffle(labels)
-    edges = list(combinations(range(n_nodes), 2))
-    return edges, labels.tolist()
+    groups = labels.tolist()
+
+    adjacency: list[set[int]] = [set() for _ in range(n_nodes)]
+    for node in rng.permutation(n_nodes).tolist():
+        while len(adjacency[node]) < m:
+            same_group = [
+                other
+                for other in range(n_nodes)
+                if other != node and other not in adjacency[node] and groups[other] == groups[node]
+            ]
+            cross_group = [
+                other
+                for other in range(n_nodes)
+                if other != node and other not in adjacency[node] and groups[other] != groups[node]
+            ]
+
+            if h1 == 0.0:
+                candidates = cross_group
+            elif h1 == 1.0:
+                candidates = same_group
+            else:
+                prefer_same_group = rng.random() < h1
+                candidates = same_group if prefer_same_group else cross_group
+                if not candidates:
+                    candidates = cross_group if prefer_same_group else same_group
+
+            if not candidates:
+                raise RuntimeError("seed graph cannot satisfy the minimum degree")
+            partner = candidates[int(rng.integers(0, len(candidates)))]
+            adjacency[node].add(partner)
+            adjacency[partner].add(node)
+
+    return [sorted(neighbors) for neighbors in adjacency], groups
 
 
 def build_bipartite_seed(m: int, rng: np.random.Generator) -> Network:
-    """Build the exact ``K_{m+1,m+1}`` seed graph with random side labels."""
+    """Build a random bipartite seed graph with minimum degree ``m``."""
     _validate_m(m)
-    edges, groups = _bipartite_seed_edges(m, rng)
-    n_nodes = 2 * (m + 1)
-    return _to_network(_adjacency_from_edges(n_nodes, edges), groups)
+    adjacency, groups = _random_seed_adjacency(m, 0.0, rng)
+    return _to_network(adjacency, groups)
 
 
 def build_clique_components_seed(m: int, rng: np.random.Generator) -> Network:
-    """Build two disjoint ``K_{m+1}`` components with random component labels."""
+    """Build the ``h1 = 1`` seed graph: two complete group components."""
     _validate_m(m)
-    edges, groups = _clique_component_seed_edges(m, rng)
-    n_nodes = 2 * (m + 1)
-    return _to_network(_adjacency_from_edges(n_nodes, edges), groups)
+    adjacency, groups = _random_seed_adjacency(m, 1.0, rng)
+    return _to_network(adjacency, groups)
 
 
-def build_random_complete_seed(m: int, rng: np.random.Generator) -> Network:
-    """Build ``K_{2(m+1)}`` with a uniform random group permutation."""
+def build_random_seed(m: int, h1: float, rng: np.random.Generator) -> Network:
+    """Build a random seed graph with minimum degree ``m`` and homophily ``h1``."""
     _validate_m(m)
-    edges, groups = _random_complete_seed_edges(m, rng)
-    n_nodes = 2 * (m + 1)
-    return _to_network(_adjacency_from_edges(n_nodes, edges), groups)
+    _validate_probability(h1, "h1")
+    adjacency, groups = _random_seed_adjacency(m, h1, rng)
+    return _to_network(adjacency, groups)
 
 
 def build_seed_graph(m: int, h1: float, rng: np.random.Generator) -> Network:
-    """Build the seed graph selected by the phase-1 homophily."""
+    """Build a random seed graph with minimum degree ``m``."""
     _validate_m(m)
     _validate_probability(h1, "h1")
     if h1 == 0.0:
         return build_bipartite_seed(m, rng)
     if h1 == 1.0:
         return build_clique_components_seed(m, rng)
-    return build_random_complete_seed(m, rng)
+    return build_random_seed(m, h1, rng)
 
 
 def _attach_node(

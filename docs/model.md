@@ -1,6 +1,6 @@
 # Model Specification
 
-**Version:** 0.2.0
+**Version:** 0.3.0
 **Status:** normative
 **Last updated:** 2026-11-06
 
@@ -81,27 +81,41 @@ the kernel in Section 3.4 and also depends on the current degrees.
 ### 3.2 Seed graph
 
 The seed graph has `m0 = 2(m+1)` nodes, with exactly `m+1` nodes labeled `A` and
-`m+1` nodes labeled `B`. Its topology depends only on the phase-1 homophily `h1`;
-phase 2 does not modify the seed graph.
+`m+1` nodes labeled `B`. The labels are a uniformly random permutation of the
+`m+1` `A` labels and the `m+1` `B` labels. Its topology is generated at random
+with a distribution that depends on the phase-1 homophily `h1`; phase 2 does not
+modify the seed graph.
 
-- **`h1 = 0`:** complete bipartite graph `K_{m+1,m+1}`, with the two sides equal to
-  the two groups. There are no within-group edges. Every seed node has degree
-  `m+1`.
-- **`h1 = 1`:** two disjoint complete graphs `K_{m+1}`, each containing only nodes
-  of one group. The two components are connected internally and disconnected from
-  each other. Every seed node has degree `m`.
-- **`0 < h1 < 1`:** complete graph `K_{2(m+1)}`. The group labels are a uniformly
-  random permutation of `m+1` labels `A` and `m+1` labels `B`. Every seed node has
-  degree `2m+1`.
+The seed graph is generated as a simple graph with minimum degree at least `m`:
 
-For `h1 = 0`, which bipartition side receives label `A` is chosen uniformly at
-random. For `h1 = 1`, which component receives label `A` is chosen uniformly at
-random. For intermediate `h1`, the label assignment is a uniform random
-permutation.
+1. Start with an empty graph and visit the nodes in a uniformly random order.
+2. For each visited node `u`, while `deg(u) < m`, choose an eligible partner `v`
+   uniformly at random and add the edge `{u, v}`. A node is eligible when it is
+   not `u` and is not already adjacent to `u`.
+3. The eligible set is restricted by `h1`:
+   - **`h1 = 0`:** only nodes in the opposite group are eligible.
+   - **`h1 = 1`:** only nodes in the same group are eligible.
+   - **`0 < h1 < 1`:** with probability `h1` the partner is drawn from the same
+     group and with probability `1 - h1` from the opposite group. If the selected
+     group has no eligible node, the other group is used.
+4. The construction stops when every seed node has degree at least `m`.
 
-The three regimes have different seed edge counts. This is a deliberate design
-choice that makes the extreme regimes exact; it is not an error and is recorded as
-decision D2.
+Consequences:
+
+- Every seed node has degree at least `m`, so no seed node is isolated.
+- For `h1 = 0`, the seed graph is bipartite with sides `A` and `B`. It is a random
+  bipartite graph with minimum degree `m`, not necessarily complete.
+- For `h1 = 1`, there are no cross-group edges. Because each group has `m+1`
+  nodes, a minimum degree of `m` forces each group to be a complete graph
+  `K_{m+1}`. The two components are disconnected; the only randomness is in the
+  label assignment and the edge insertion order.
+- For `0 < h1 < 1`, both edge types can occur and `h1` biases the partner group.
+- Except for `h1 = 1`, the number of seed edges is random. At `h1 = 1` it is
+  `m(m+1)`.
+
+The seed graph uses the base stream. Its construction order is part of the
+reference implementation for reproducibility. The minimum-degree rule is recorded
+as decision D2.
 
 ### 3.3 Arrival process
 
@@ -360,7 +374,8 @@ $$
 
 The pairs of `H x P` are 25. The arriving-edge count `m ∈ M` is a crossed factor,
 so a baseline is the triple `(h1, p1, m)` and there are `25 x 3 = 75` baselines.
-For each baseline, the seed graph is determined by `h1` as in Section 3.2.
+For each baseline, the seed graph is generated from `h1` and the base stream as in
+Section 3.2.
 
 ### 5.2 Intervention set
 
@@ -668,7 +683,7 @@ network is easier to cascade, and a larger `phi^*` means it is harder.
 | ID | Decision | Rationale |
 |---|---|---|
 | D1 | Group assignment is binomial, not an exact quota | Keeps the model as defined by the arrival probability `p`; exact quotas would change the ensemble |
-| D2 | Seed graphs depend only on `h1`, with special topologies at `h1 = 0` and `h1 = 1` | Makes the extreme regimes exact and avoids isolated nodes at intermediate values |
+| D2 | Seed graphs are random simple graphs with minimum degree `m`; `h1` restricts or biases the partner group | Guarantees no isolated nodes, keeps `h1 = 0` bipartite and `h1 = 1` disconnected, and restores seed-level randomness |
 | D3 | Attachment uses a degree bag with homophily rejection | Equivalent to the kernel `Pi_i`, fixes the random draw order, and avoids recomputing weights |
 | D4 | Phase-2 streams are independent across intervention cells | Simplicity and reproducibility; the paired design already shares `G0` |
 | D5 | The main design uses a homogeneous threshold | Avoids a second source of randomness; heterogeneous thresholds are a robustness check |
