@@ -34,6 +34,12 @@ def test_network_config_rejects_n1_below_seed_size_when_m_is_large() -> None:
         NetworkConfig(n1=8, n2=5, m_values=(4,))
 
 
+def test_network_config_accepts_n1_equal_to_seed_size_when_m_is_four() -> None:
+    config = NetworkConfig(n1=12, n2=5, m_values=(4,))
+
+    assert config.n1 == 12
+
+
 def test_design_config_rejects_homophily_above_one_when_grid_is_invalid() -> None:
     with pytest.raises(ValueError):
         DesignConfig(

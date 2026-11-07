@@ -1,6 +1,6 @@
 # Model Specification
 
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Status:** normative
 **Last updated:** 2026-11-06
 
@@ -28,7 +28,7 @@ inference is deferred until the descriptive analysis is complete.
 |---|---|
 | `N1`, `N2`, `N` | Nodes at the end of phase 1, nodes added in phase 2, total nodes (`N = N1 + N2`) |
 | `m` | Edges brought by each arriving node |
-| `m0` | Number of nodes in the seed graph (`m0 = 2(m+1)`) |
+| `m0` | Number of nodes in the seed graph (`m0 = 2(m+2)`) |
 | `p`, `p1`, `p2` | Probability that an arriving node belongs to group `A`, overall and per phase |
 | `h`, `h1`, `h2` | Homophily weight, overall and per phase |
 | `h_ij` | Pair weight between node `i` and an arriving node `j` |
@@ -80,9 +80,9 @@ the kernel in Section 3.4 and also depends on the current degrees.
 
 ### 3.2 Seed graph
 
-The seed graph has `m0 = 2(m+1)` nodes, with exactly `m+1` nodes labeled `A` and
-`m+1` nodes labeled `B`. The labels are a uniformly random permutation of the
-`m+1` `A` labels and the `m+1` `B` labels. Its topology is generated at random
+The seed graph has `m0 = 2(m+2)` nodes, with exactly `m+2` nodes labeled `A` and
+`m+2` nodes labeled `B`. The labels are a uniformly random permutation of the
+`m+2` `A` labels and the `m+2` `B` labels. Its topology is generated at random
 with a distribution that depends on the phase-1 homophily `h1`; phase 2 does not
 modify the seed graph.
 
@@ -105,13 +105,13 @@ Consequences:
 - Every seed node has degree at least `m`, so no seed node is isolated.
 - For `h1 = 0`, the seed graph is bipartite with sides `A` and `B`. It is a random
   bipartite graph with minimum degree `m`, not necessarily complete.
-- For `h1 = 1`, there are no cross-group edges. Because each group has `m+1`
-  nodes, a minimum degree of `m` forces each group to be a complete graph
-  `K_{m+1}`. The two components are disconnected; the only randomness is in the
-  label assignment and the edge insertion order.
+- For `h1 = 1`, there are no cross-group edges. Each group has `m+2` nodes, so a
+  minimum degree of `m` still leaves room for random within-group edges. Each
+  group-induced subgraph is connected, because a component with minimum degree `m`
+  needs at least `m+1` nodes and two such components would not fit in `m+2`
+  nodes. The seed graph therefore has exactly two components.
 - For `0 < h1 < 1`, both edge types can occur and `h1` biases the partner group.
-- Except for `h1 = 1`, the number of seed edges is random. At `h1 = 1` it is
-  `m(m+1)`.
+- The number of seed edges is random in all three regimes.
 
 The seed graph uses the base stream. Its construction order is part of the
 reference implementation for reproducibility. The minimum-degree rule is recorded
@@ -152,7 +152,7 @@ The denominator runs over all existing nodes. Because every seed node has positi
 degree and every arriving node brings `m ≥ 1` edges, the denominator is positive at
 every step. When `h = 1`, cross-group weights are zero; when `h = 0`, within-group
 weights are zero. Both cases remain well defined because each group has at least
-`m+1` seed nodes.
+`m+2` seed nodes.
 
 The target draws are sequential and without replacement. After a target has been
 chosen, it is excluded from the denominator for the remaining draws of the same
@@ -211,7 +211,7 @@ the duration of the `m` draws and keeps the bag equal to the degree multiset.
 rate and is at most `max(1/h, 1/(1-h))` in the interior of the interval. At the
 boundaries only one group is accepted; the expected number of draws is then the
 ratio between the total degree mass and the preferred group's degree mass. Since
-each group has at least `m+1` nodes at all times, the loop terminates with
+each group has at least `m+2` nodes at all times, the loop terminates with
 probability one.
 
 **Boundary cases.** At `h = 0`, same-group candidates are always rejected and only
@@ -402,7 +402,7 @@ generated separately for every base graph.
 ### 5.3 Sizes and replication
 
 - `N1 = 250`, `N2 = 250`, so `N = 500`.
-- `m0 = 2(m+1)`, with `m+1` seed nodes per group.
+- `m0 = 2(m+2)`, with `m+2` seed nodes per group.
 - `R` independent base graphs per baseline. The pilot value is `R = 50`; the final
   value is fixed by a power analysis at the level of `G0`.
 

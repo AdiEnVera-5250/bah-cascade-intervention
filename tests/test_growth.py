@@ -34,37 +34,35 @@ def test_bipartite_seed_has_minimum_degree_when_m_is_one() -> None:
     network = build_bipartite_seed(1, make_rng(0))
     metrics = network_metrics(network)
 
-    assert network.n_nodes == 4
+    assert network.n_nodes == 6
     assert np.all(network.degrees() >= 1)
     assert metrics.edges_cross == network.n_edges
     assert metrics.edges_within_A == 0
     assert metrics.edges_within_B == 0
 
 
-def test_clique_component_seed_has_two_edges_when_m_is_one() -> None:
+def test_clique_component_seed_has_two_components_when_m_is_one() -> None:
     network = build_clique_components_seed(1, make_rng(0))
     metrics = network_metrics(network)
 
-    assert network.n_nodes == 4
-    assert network.n_edges == 2
+    assert network.n_nodes == 6
     assert metrics.edges_cross == 0
-    assert metrics.edges_within_A == 1
-    assert metrics.edges_within_B == 1
+    assert metrics.edges_within_A >= 2
+    assert metrics.edges_within_B >= 2
     assert metrics.n_components == 2
-    assert np.all(network.degrees() == 1)
+    assert metrics.largest_component_size == 3
+    assert np.all(network.degrees() >= 1)
 
 
-def test_clique_component_seed_is_complete_when_m_is_two() -> None:
+def test_clique_component_seed_has_two_components_when_m_is_two() -> None:
     network = build_clique_components_seed(2, make_rng(0))
     metrics = network_metrics(network)
 
-    assert network.n_nodes == 6
-    assert network.n_edges == 6
+    assert network.n_nodes == 8
     assert metrics.edges_cross == 0
-    assert metrics.edges_within_A == 3
-    assert metrics.edges_within_B == 3
     assert metrics.n_components == 2
-    assert np.all(network.degrees() == 2)
+    assert metrics.largest_component_size == 4
+    assert np.all(network.degrees() >= 2)
 
 
 def test_bipartite_seed_varies_with_seed_when_m_is_two() -> None:
@@ -82,7 +80,7 @@ def test_bipartite_seed_varies_with_seed_when_m_is_two() -> None:
 def test_random_seed_has_minimum_degree_when_h1_is_interior() -> None:
     network = build_random_seed(2, 0.5, make_rng(0))
 
-    assert network.n_nodes == 6
+    assert network.n_nodes == 8
     assert np.all(network.degrees() >= 2)
     _assert_simple_network(network)
 
@@ -95,11 +93,11 @@ def test_seed_graph_keeps_minimum_degree_when_m_is_two(h1: float) -> None:
 
 
 @pytest.mark.parametrize("h1", [0.0, 0.2, 1.0])
-def test_seed_graph_assigns_two_nodes_per_group_when_m_is_one(h1: float) -> None:
+def test_seed_graph_assigns_three_nodes_per_group_when_m_is_one(h1: float) -> None:
     network = build_seed_graph(1, h1, make_rng(3))
 
-    assert np.count_nonzero(network.groups == GROUP_A) == 2
-    assert np.count_nonzero(network.groups == GROUP_B) == 2
+    assert np.count_nonzero(network.groups == GROUP_A) == 3
+    assert np.count_nonzero(network.groups == GROUP_B) == 3
 
 
 @pytest.mark.parametrize("h1", [0.0, 0.2, 1.0])

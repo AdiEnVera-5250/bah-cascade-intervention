@@ -123,7 +123,7 @@ def _random_seed_adjacency(
     h1: float,
     rng: np.random.Generator,
 ) -> tuple[list[list[int]], list[int]]:
-    n_side = m + 1
+    n_side = m + 2
     n_nodes = 2 * n_side
     labels = np.asarray([GROUP_A] * n_side + [GROUP_B] * n_side, dtype=np.int8)
     rng.shuffle(labels)
@@ -275,7 +275,7 @@ def grow_phase1(
     _validate_m(m)
     _validate_probability(h1, "h1")
     _validate_probability(p1, "p1")
-    if n1 < 2 * (m + 1):
+    if n1 < 2 * (m + 2):
         raise ValueError("n1 must fit the seed graph")
     seed = build_seed_graph(m, h1, rng)
     return grow_to(seed, m, n1, h1, p1, rng)

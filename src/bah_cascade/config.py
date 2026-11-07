@@ -45,7 +45,7 @@ class NetworkConfig:
         _validate_sorted_unique(self.m_values, "m_values")
         if self.n2 <= 0:
             raise ValueError("n2 must be positive")
-        if self.n1 < 2 * (max(self.m_values) + 1):
+        if self.n1 < 2 * (max(self.m_values) + 2):
             raise ValueError("n1 must fit the largest seed graph")
 
 

@@ -23,9 +23,9 @@ def _path_network() -> Network:
 def test_bipartite_metrics_reconcile_edge_types_when_m_is_one() -> None:
     metrics = network_metrics(build_bipartite_seed(1, make_rng(0)))
 
-    assert metrics.n_A == 2
-    assert metrics.n_B == 2
-    assert metrics.n_edges >= 2
+    assert metrics.n_A == 3
+    assert metrics.n_B == 3
+    assert metrics.n_edges >= 3
     assert metrics.edges_cross == metrics.n_edges
     assert metrics.edges_within_A == 0
     assert metrics.edges_within_B == 0
@@ -36,14 +36,13 @@ def test_bipartite_metrics_reconcile_edge_types_when_m_is_one() -> None:
 def test_clique_component_metrics_count_two_components_when_m_is_one() -> None:
     metrics = network_metrics(build_clique_components_seed(1, make_rng(0)))
 
-    assert metrics.n_edges == 2
+    assert metrics.n_edges >= 4
     assert metrics.edges_cross == 0
-    assert metrics.edges_within_A == 1
-    assert metrics.edges_within_B == 1
+    assert metrics.edges_within_A >= 2
+    assert metrics.edges_within_B >= 2
     assert metrics.n_components == 2
-    assert metrics.largest_component_size == 2
-    assert metrics.k_min == 1
-    assert metrics.k_max == 1
+    assert metrics.largest_component_size == 3
+    assert metrics.k_min >= 1
 
 
 def test_random_seed_metrics_reconcile_edge_types_when_h1_is_interior() -> None:
