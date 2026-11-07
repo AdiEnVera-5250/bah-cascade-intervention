@@ -66,7 +66,7 @@ without execution outputs.
 | Phase | Status | Goal | Exit criterion |
 |---|---|---|---|
 | 0. Repository baseline | completed | Coherent repo, no stale artifacts | `uv sync` works; clean tree |
-| 1. Deterministic core | pending | Correct networks and cascades | `ruff` and `pytest` green |
+| 1. Deterministic core | completed | Correct networks and cascades | `ruff` and `pytest` green |
 | 2. Minimum functional pipeline | pending | Contract-valid run plus demo notebook | Smoke run validates; notebook runs |
 | 3. Descriptive analysis | pending | Answer the study questions | Reports generated from a validated run |
 | 4. Scale and final run | pending | Make 187.5M cascades viable | Throughput measured; `R` fixed; run complete |
@@ -97,7 +97,7 @@ Exit criteria:
 
 ### Phase 1 — Deterministic core
 
-**Status:** pending.
+**Status:** completed.
 
 Tasks:
 
