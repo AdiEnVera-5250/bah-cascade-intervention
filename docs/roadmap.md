@@ -2,7 +2,7 @@
 
 **Version:** 0.1.0
 **Status:** active
-**Last updated:** 2026-11-06
+**Last updated:** 2026-11-08
 
 This document tracks phases, deliverables, and exit criteria. Scientific decisions
 live in `docs/model.md`, Section 8. Artifact details live in
@@ -16,8 +16,9 @@ live in `docs/model.md`, Section 8. Artifact details live in
 - Python API only. There is no command-line interface and no `__main__.py`.
   Execution happens from scripts or notebooks.
 - `config.py` holds named, immutable configurations. No external config parser.
-- `numpy` in the core; `pandas` and `matplotlib` in analysis and reporting;
-  `networkx` for drawing and test cross-checks.
+- `numpy` and `pandas` may be used across the core, storage, runner, and
+  analysis layers; `matplotlib` is used for reporting and notebooks;
+  `networkx` is used for drawing and test cross-checks.
 - Current dependencies are kept. New dependencies require explicit approval.
 - The runner is the only writer of `results/`; analysis writes only to `reports/`.
 - One commit per phase, Conventional Commits, one topic per commit.
@@ -128,10 +129,15 @@ Exit criteria:
 
 Tasks:
 
-- `storage.py`: deterministic CSV and gzip writes (`LF`, UTF-8 without BOM, gzip
-  level 9 with `mtime=0`), readers, and `validate_run(run_dir)`.
-- `runner.py`: `run(config, output_dir) -> Path`; controls and interventions from
-  a shared `G0`; resume by `network_id`; one cascade partition per `baseline_id`.
+- `storage.py`: deterministic `networks.csv` and cascade gzip writes (`LF`, UTF-8
+  without BOM, gzip level 9 with `mtime=0`), readers, and
+  `validate_run(run_dir)`. `metadata.json` may contain timestamps and is not
+  required to be byte-identical.
+- `runner.py`: `run(seed, config, output_dir) -> Path`; controls and interventions
+  from a shared `G0`; direct writes to the final run directory with
+  `metadata.status` tracking `running`, `completed`, or `failed`; resume by
+  `network_id` using `networks.csv` as the manifest; one cascade partition per
+  `baseline_id`.
 - Integration test with `tmp_path` and a tiny configuration (`N1=20`, `N2=10`).
 - `DEMO` configuration: `m=1`, `N1=50`, `N2=50`, `h1=0.8`, `p1=0.4`, `h2=0.2`,
   `p2=0.4`.
@@ -171,6 +177,10 @@ The notebook uses the public functions directly and does not write a run. It
 therefore does not require a new value in the `design` field of `metadata.json`.
 The 100-node configuration is a demonstration outside the study design defined in
 `docs/model.md`.
+
+**Dependencies:** `jupyter`, `nbclient`, and `nbconvert` are development
+dependencies for executing and validating the notebook. They are recorded in
+`pyproject.toml` and `uv.lock`.
 
 ### Phase 3 — Descriptive analysis
 

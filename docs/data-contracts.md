@@ -1,9 +1,9 @@
 # Data Contracts
 
-**Version:** 0.1.0
-**Schema version:** 1.0
+**Version:** 0.2.0
+**Schema version:** 2.0
 **Status:** normative
-**Last updated:** 2026-11-06
+**Last updated:** 2026-11-08
 
 This document is the contract between the experiment runner and the analysis
 layer. It defines file names, columns, types, keys, invariants, serialization,
@@ -70,7 +70,10 @@ results/<run_id>/
     <baseline_id>.csv.gz
 ```
 
-`run_id = <config_name>__<8-hex config hash>`.
+`run_id = <config_name>__<8-hex config hash>__s<master_seed>`, where `master_seed`
+is the decimal integer seed passed to the runner. The seed is part of the run
+identifier so that the same configuration executed with different master seeds
+produces distinct run directories.
 
 The partition by `baseline_id` is physical. The logical schema is identical across
 partitions, and each partition contains every network derived from that baseline,
@@ -258,7 +261,10 @@ hard errors in the analysis layer.
 
 ## 10. Determinism and serialization
 
-- Same seed, same code, and same dependency versions produce byte-identical files.
+- Same seed, same code, and same dependency versions produce byte-identical
+  `networks.csv` and `cascades/<baseline_id>.csv.gz` files.
+- `metadata.json` is not required to be byte-identical because it records
+  `created_at`, `duration_seconds`, and `git_dirty`.
 - Rows are sorted by primary key before writing.
 - Column order is fixed.
 - Floats are written in shortest round-trip form.
@@ -272,14 +278,18 @@ analysis from `networks.csv` and `cascades/`, as described in Section 5.4 of
 
 ## 11. Resume and partial runs
 
-- The runner writes to a temporary directory and renames it atomically when the
-  run completes.
-- `metadata.json.status` reflects `running`, `completed`, or `failed`.
-- A resumed run validates `config_hash` and `schema_version` before writing.
+- The runner writes directly to the final run directory. Before writing any data
+  file it sets `metadata.json.status` to `running`; on success it sets
+  `completed`, and on failure it sets `failed`.
+- An incomplete run is therefore visible in `results/`, and the analysis layer
+  must require `status = completed` before using it.
+- A resumed run validates `run_id` (including `config_hash` and `master_seed`) and
+  `schema_version` before writing.
+- `networks.csv` is the run manifest: it lists completed `network_id` values, and a
+  resume never duplicates or overwrites a completed network.
 - Each `cascades/<baseline_id>.csv.gz` is written only after all of its networks
-  are complete.
-- The run manifest lists completed `network_id` values; a resume never duplicates
-  or overwrites a completed network.
+  are complete. A partially written partition is discarded and regenerated on
+  resume.
 
 ## 12. Row counts
 
@@ -318,11 +328,11 @@ For the full grid, each `baseline_id` partition holds
 
 ```json
 {
-  "run_id": "PILOT__1a2b3c4d",
+  "run_id": "PILOT__1a2b3c4d__s20261106",
   "config_name": "PILOT",
   "config_hash": "1a2b3c4d",
-  "model_version": "0.2.0",
-  "schema_version": "1.0",
+  "model_version": "0.4.0",
+  "schema_version": "2.0",
   "created_at": "2026-11-06T12:00:00Z",
   "git_commit": "0000000",
   "git_dirty": false,
