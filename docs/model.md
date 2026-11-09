@@ -1,8 +1,8 @@
 # Model Specification
 
-**Version:** 0.4.0
+**Version:** 0.5.0
 **Status:** normative
-**Last updated:** 2026-11-06
+**Last updated:** 2026-11-08
 
 This document is the scientific source of truth for the project. If the code and
 this document disagree, this document prevails unless an ADR records an explicit
@@ -86,13 +86,22 @@ The seed graph has `m0 = 2(m+2)` nodes, with exactly `m+2` nodes labeled `A` and
 with a distribution that depends on the phase-1 homophily `h1`; phase 2 does not
 modify the seed graph.
 
-The seed graph is generated as a simple graph with minimum degree at least `m`:
+The seed graph is generated as a simple connected graph with minimum degree at
+least `m`:
 
-1. Start with an empty graph and visit the nodes in a uniformly random order.
-2. For each visited node `u`, while `deg(u) < m`, choose an eligible partner `v`
-   uniformly at random and add the edge `{u, v}`. A node is eligible when it is
-   not `u` and is not already adjacent to `u`.
-3. The eligible set is restricted by `h1`:
+1. Visit the nodes in a uniformly random order. For `h1 = 0`, the first two
+   visited nodes are one uniformly random `A` node and one uniformly random `B`
+   node, in uniformly random order, and the remaining nodes follow a uniformly
+   random order. This guarantees that after the second step the visited set
+   contains both groups, so a cross-group partner is always available.
+2. For each visited node `u`, if it has no neighbor among the nodes visited before
+   it and the visited set is not empty, add one back edge from `u` to an eligible
+   visited node. The back edge follows the `h1` rule in step 3. Its purpose is to
+   attach `u` to the already connected visited part. If `h1 = 1` and `u` is the
+   first node of its group, no back edge is added.
+3. While `deg(u) < m`, choose an eligible partner `v` uniformly at random and add
+   the edge `{u, v}`. A node is eligible when it is not `u` and is not already
+   adjacent to `u`. The eligible set is restricted by `h1`:
    - **`h1 = 0`:** only nodes in the opposite group are eligible.
    - **`h1 = 1`:** only nodes in the same group are eligible.
    - **`0 < h1 < 1`:** with probability `h1` the partner is drawn from the same
@@ -100,18 +109,27 @@ The seed graph is generated as a simple graph with minimum degree at least `m`:
      group has no eligible node, the other group is used.
 4. The construction stops when every seed node has degree at least `m`.
 
+The back edge in step 2 makes connectivity an invariant of the construction: the
+subgraph induced by the visited nodes is connected for `h1 < 1`, and each
+group-induced subgraph of the visited nodes is connected for `h1 = 1`. Every new
+node therefore joins an existing connected part. No edge repair, rejection, or
+resampling step is used.
+
 Consequences:
 
 - Every seed node has degree at least `m`, so no seed node is isolated.
-- For `h1 = 0`, the seed graph is bipartite with sides `A` and `B`. It is a random
-  bipartite graph with minimum degree `m`, not necessarily complete.
-- For `h1 = 1`, there are no cross-group edges. Each group has `m+2` nodes, so a
-  minimum degree of `m` still leaves room for random within-group edges. Each
-  group-induced subgraph is connected, because a component with minimum degree `m`
-  needs at least `m+1` nodes and two such components would not fit in `m+2`
-  nodes. The seed graph therefore has exactly two components.
-- For `0 < h1 < 1`, both edge types can occur and `h1` biases the partner group.
-- The number of seed edges is random in all three regimes.
+- For `h1 = 0`, the seed graph is bipartite with sides `A` and `B` and connected.
+  It is a random connected bipartite graph with minimum degree `m`, not
+  necessarily complete.
+- For `h1 = 1`, there are no cross-group edges. Each group has `m+2` nodes, and
+  the back-edge rule restricted to each group makes each group-induced subgraph
+  connected. The seed graph therefore has exactly two components.
+- For `0 < h1 < 1`, both edge types can occur, `h1` biases the partner group, and
+  the seed graph is connected by construction.
+- For `m = 1`, every node adds at most one edge, so the seed is a tree for
+  `h1 < 1` with `2(m+2) - 1` edges, and two trees for `h1 = 1` with `2(m+1)`
+  edges in total.
+- For `m >= 2`, the number of seed edges is random.
 
 The seed graph uses the base stream. Its construction order is part of the
 reference implementation for reproducibility. The minimum-degree rule is recorded
@@ -250,13 +268,17 @@ generated from the same `G0` with its own independent phase-2 randomness.
 - The number of `A` nodes is random. For `N1 = N2`, the expected final fraction of
   `A` nodes is `(p1 + p2) / 2`. The realized values `n_A` and `n_B` are recorded
   for every network.
+- If `h1 < 1`, `G0` is connected. Growth only adds nodes with at least one edge
+  and never removes edges, so every network grown from `G0` remains connected for
+  every `h2` and `p2`.
 - If `h1 = 0`, `G0` is bipartite with sides `A` and `B`. If `h2 = 0` as well, the
   final network is bipartite.
 - If `h1 = 1`, `G0` is disconnected into the two group components. If `h2 = 1` as
   well, the final network is disconnected.
 - If `h1 = 0` but `h2 > 0`, phase 2 can add within-group edges and the final
   network need not be bipartite. If `h1 = 1` but `h2 < 1`, phase 2 can add
-  cross-group edges and the final network need not be disconnected.
+  cross-group edges between the two group components and the final network need
+  not be disconnected.
 
 ## 4. Cascade model
 
@@ -683,7 +705,7 @@ network is easier to cascade, and a larger `phi^*` means it is harder.
 | ID | Decision | Rationale |
 |---|---|---|
 | D1 | Group assignment is binomial, not an exact quota | Keeps the model as defined by the arrival probability `p`; exact quotas would change the ensemble |
-| D2 | Seed graphs are random simple graphs with minimum degree `m`; `h1` restricts or biases the partner group | Guarantees no isolated nodes, keeps `h1 = 0` bipartite and `h1 = 1` disconnected, and restores seed-level randomness |
+| D2 | Seed graphs are random simple graphs with minimum degree `m`; a back edge at each insertion makes `h1 < 1` connected, while `h1` restricts or biases the partner group | Guarantees no isolated nodes and connectivity for `h1 < 1`, keeps `h1 = 0` bipartite and `h1 = 1` disconnected, and restores seed-level randomness |
 | D3 | Attachment uses a degree bag with homophily rejection | Equivalent to the kernel `Pi_i`, fixes the random draw order, and avoids recomputing weights |
 | D4 | Phase-2 streams are independent across intervention cells | Simplicity and reproducibility; the paired design already shares `G0` |
 | D5 | The main design uses a homogeneous threshold | Avoids a second source of randomness; heterogeneous thresholds are a robustness check |

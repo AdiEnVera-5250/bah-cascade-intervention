@@ -85,6 +85,66 @@ def test_random_seed_has_minimum_degree_when_h1_is_interior() -> None:
     _assert_simple_network(network)
 
 
+@pytest.mark.parametrize("m", [1, 2, 4])
+def test_bipartite_seed_is_connected_when_homophily_is_zero(m: int) -> None:
+    for seed in range(5):
+        network = build_bipartite_seed(m, make_rng(seed))
+        metrics = network_metrics(network)
+
+        assert metrics.n_components == 1
+        assert metrics.edges_cross == network.n_edges
+        assert np.all(network.degrees() >= m)
+
+
+@pytest.mark.parametrize("h1", [0.2, 0.5, 0.8])
+def test_seed_graph_is_connected_when_homophily_is_below_one(h1: float) -> None:
+    for seed in range(5):
+        network = build_seed_graph(1, h1, make_rng(seed))
+
+        assert network_metrics(network).n_components == 1
+        assert np.all(network.degrees() >= 1)
+        _assert_simple_network(network)
+
+
+@pytest.mark.parametrize("m", [1, 2, 4])
+@pytest.mark.parametrize("h1", [0.2, 0.5, 0.8])
+def test_random_seed_is_connected_when_homophily_is_interior(m: int, h1: float) -> None:
+    for seed in range(3):
+        network = build_random_seed(m, h1, make_rng(seed))
+
+        assert network_metrics(network).n_components == 1
+        assert np.all(network.degrees() >= m)
+
+
+def test_seed_graph_has_two_components_when_homophily_is_one() -> None:
+    network = build_seed_graph(1, 1.0, make_rng(0))
+
+    assert network_metrics(network).n_components == 2
+
+
+@pytest.mark.parametrize(
+    ("h1", "expected_edges"),
+    [(0.0, 5), (0.2, 5), (0.5, 5), (1.0, 4)],
+)
+def test_seed_graph_has_tree_edge_count_when_m_is_one(h1: float, expected_edges: int) -> None:
+    network = build_seed_graph(1, h1, make_rng(0))
+
+    assert network.n_edges == expected_edges
+
+
+def test_growth_keeps_network_connected_when_seed_is_connected() -> None:
+    network = grow_phase1(1, 0.5, 0.4, 40, make_rng(0))
+
+    assert network_metrics(network).n_components == 1
+
+
+def test_growth_keeps_network_connected_when_phase_two_homophily_is_one() -> None:
+    g0 = grow_phase1(1, 0.5, 0.4, 20, make_rng(0))
+    g2 = grow_phase2(g0, 1, 1.0, 0.4, 10, make_rng(1))
+
+    assert network_metrics(g2).n_components == 1
+
+
 @pytest.mark.parametrize("h1", [0.0, 0.2, 0.5, 1.0])
 def test_seed_graph_keeps_minimum_degree_when_m_is_two(h1: float) -> None:
     network = build_seed_graph(2, h1, make_rng(3))

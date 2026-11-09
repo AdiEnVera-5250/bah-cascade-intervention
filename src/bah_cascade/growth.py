@@ -118,6 +118,43 @@ def _bag_from_adjacency(adjacency: list[list[int]]) -> list[int]:
     return bag
 
 
+def _visit_order(groups: list[int], h1: float, rng: np.random.Generator) -> list[int]:
+    """Return the order in which the seed graph visits its nodes."""
+    n_nodes = len(groups)
+    if h1 != 0.0:
+        return rng.permutation(n_nodes).tolist()
+
+    nodes_a = [node for node in range(n_nodes) if groups[node] == GROUP_A]
+    nodes_b = [node for node in range(n_nodes) if groups[node] == GROUP_B]
+    first = nodes_a[int(rng.integers(0, len(nodes_a)))]
+    second = nodes_b[int(rng.integers(0, len(nodes_b)))]
+    if rng.random() < 0.5:
+        first, second = second, first
+    remaining = [node for node in range(n_nodes) if node != first and node != second]
+    return [first, second] + rng.permutation(remaining).tolist()
+
+
+def _select_partner(
+    same_group: list[int],
+    cross_group: list[int],
+    h1: float,
+    rng: np.random.Generator,
+) -> int | None:
+    """Select a partner from the eligible same-group and cross-group nodes."""
+    if h1 == 0.0:
+        pool = cross_group
+    elif h1 == 1.0:
+        pool = same_group
+    else:
+        prefer_same_group = rng.random() < h1
+        pool = same_group if prefer_same_group else cross_group
+        if not pool:
+            pool = cross_group if prefer_same_group else same_group
+    if not pool:
+        return None
+    return pool[int(rng.integers(0, len(pool)))]
+
+
 def _random_seed_adjacency(
     m: int,
     h1: float,
@@ -130,47 +167,53 @@ def _random_seed_adjacency(
     groups = labels.tolist()
 
     adjacency: list[set[int]] = [set() for _ in range(n_nodes)]
-    for node in rng.permutation(n_nodes).tolist():
+    processed: list[int] = []
+
+    for node in _visit_order(groups, h1, rng):
+        group = groups[node]
+        same_group = [other for other in processed if groups[other] == group]
+        cross_group = [other for other in processed if groups[other] != group]
+
+        if not adjacency[node] and processed:
+            partner = _select_partner(same_group, cross_group, h1, rng)
+            if partner is None:
+                if h1 < 1.0:
+                    raise RuntimeError("seed graph cannot be connected")
+            else:
+                adjacency[node].add(partner)
+                adjacency[partner].add(node)
+
         while len(adjacency[node]) < m:
             same_group = [
                 other
                 for other in range(n_nodes)
-                if other != node and other not in adjacency[node] and groups[other] == groups[node]
+                if other != node and other not in adjacency[node] and groups[other] == group
             ]
             cross_group = [
                 other
                 for other in range(n_nodes)
-                if other != node and other not in adjacency[node] and groups[other] != groups[node]
+                if other != node and other not in adjacency[node] and groups[other] != group
             ]
-
-            if h1 == 0.0:
-                candidates = cross_group
-            elif h1 == 1.0:
-                candidates = same_group
-            else:
-                prefer_same_group = rng.random() < h1
-                candidates = same_group if prefer_same_group else cross_group
-                if not candidates:
-                    candidates = cross_group if prefer_same_group else same_group
-
-            if not candidates:
+            partner = _select_partner(same_group, cross_group, h1, rng)
+            if partner is None:
                 raise RuntimeError("seed graph cannot satisfy the minimum degree")
-            partner = candidates[int(rng.integers(0, len(candidates)))]
             adjacency[node].add(partner)
             adjacency[partner].add(node)
+
+        processed.append(node)
 
     return [sorted(neighbors) for neighbors in adjacency], groups
 
 
 def build_bipartite_seed(m: int, rng: np.random.Generator) -> Network:
-    """Build a random bipartite seed graph with minimum degree ``m``."""
+    """Build a random connected bipartite seed graph with minimum degree ``m``."""
     _validate_m(m)
     adjacency, groups = _random_seed_adjacency(m, 0.0, rng)
     return _to_network(adjacency, groups)
 
 
 def build_clique_components_seed(m: int, rng: np.random.Generator) -> Network:
-    """Build the ``h1 = 1`` seed graph: two complete group components."""
+    """Build the ``h1 = 1`` seed graph: two connected group components."""
     _validate_m(m)
     adjacency, groups = _random_seed_adjacency(m, 1.0, rng)
     return _to_network(adjacency, groups)
@@ -185,7 +228,11 @@ def build_random_seed(m: int, h1: float, rng: np.random.Generator) -> Network:
 
 
 def build_seed_graph(m: int, h1: float, rng: np.random.Generator) -> Network:
-    """Build a random seed graph with minimum degree ``m``."""
+    """Build a random seed graph with minimum degree ``m``.
+
+    The graph is connected for ``h1 < 1`` and has two group components for
+    ``h1 = 1``.
+    """
     _validate_m(m)
     _validate_probability(h1, "h1")
     if h1 == 0.0:
