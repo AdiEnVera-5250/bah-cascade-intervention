@@ -139,8 +139,8 @@ Tasks:
   `network_id` using `networks.csv` as the manifest; one cascade partition per
   `baseline_id`.
 - Integration test with `tmp_path` and a tiny configuration (`N1=20`, `N2=10`).
-- `DEMO` configuration: `m=1`, `N1=50`, `N2=50`, `h1=0.8`, `p1=0.4`, `h2=0.2`,
-  `p2=0.4`.
+- `DEMO` configuration: 10 replicates, `m=1`, `N1=250`, `N2=250`, `h1=0.5`,
+  `p1=0.2`, and phase-2 arms `(0.5, 0.2)`, `(0.8, 0.2)`, and `(0.2, 0.2)`.
 - `notebooks/demo.ipynb`.
 
 Exit criteria:
@@ -157,26 +157,39 @@ Exit criteria:
 
 **File:** `notebooks/demo.ipynb`.
 
-**Configuration:** `DEMO`, with `m=1`, `N1=50`, `N2=50`, `N=100`, `h1=0.8`,
-`p1=0.4`, `h2=0.2`, `p2=0.4`, and `phi=0.15`.
+**Configuration:** `DEMO`, with 10 replicates, `m=1`, `N1=250`, `N2=250`,
+`N=500`, `h1=0.5`, `p1=0.2`, `phi=0.1`, and three phase-2 arms:
+the baseline `(0.5, 0.2)`, `(0.8, 0.2)`, and `(0.2, 0.2)`.
 
 **Content:**
 
-1. Build `G0` once from the phase-1 parameters.
-2. Continue growth twice from the same `G0`: the control with `(h1, p1)` and the
-   intervened network with `(h2, p2)`.
-3. Draw both graphs side by side, with nodes colored by group and a fixed layout
-   seed.
-4. Run 100 cascades per network, one per node, at `phi=0.15`; 200 cascades in
-   total.
-5. Show a 2x2 histogram grid: `S_N` and `t_s`, with control and intervened
-   networks side by side, using a fixed bin count.
-6. Print mean, median, and global-cascade fraction for both networks.
+1. Derive 10 base seeds and generate 10 independent `G0` graphs from the phase-1
+   parameters.
+2. From each `G0`, continue growth into the three phase-2 arms using independent
+   intervention seeds.
+3. Run one cascade per node at `phi=0.1` on all 30 networks, for 15,000 cascades
+   in total.
+4. Draw a single 1x3 panel with one representative `G0` and its three final
+   networks. Each panel uses its own `forceatlas2_layout` coordinates with a
+   deterministic seed, so the layout is not shared across the arms. Nodes are
+   colored by group and sized proportionally to their degree on a shared scale.
+   The representative `G0` is the replicate whose baseline mean `S_N` is closest
+   to the median baseline mean across the ten replicates.
+5. Draw a slope graph of the per-`G0` mean `S_N` across the three arms, and an
+   equivalent slope graph for the median. The arms are ordered by `h2`, so the
+   baseline `(0.5, 0.2)` sits in the center, and the vertical axis is logarithmic.
+6. Draw a 2x3 grid of 10-bin step histograms of `S_N`, normalized to the fraction
+   of cascades per bin, with one column per arm: the top row pools all `G0`
+   (5,000 cascades per arm) and the bottom row shows the representative `G0`
+   (500 cascades per arm).
+7. Show a table whose rows are the mean, median, interquartile range, and global
+   cascade fraction of `S_N`, with one column per arm.
 
-The notebook uses the public functions directly and does not write a run. It
-therefore does not require a new value in the `design` field of `metadata.json`.
-The 100-node configuration is a demonstration outside the study design defined in
-`docs/model.md`.
+The notebook is a descriptive micro-experiment for integration testing. It uses
+the public functions directly, does not call the runner, and does not write a run.
+It therefore does not require a new value in the `design` field of
+`metadata.json`. The 500-node configuration is a demonstration outside the study
+design defined in `docs/model.md`; it does not implement the Phase 3 analyses.
 
 **Dependencies:** `jupyter`, `nbclient`, and `nbconvert` are development
 dependencies for executing and validating the notebook. They are recorded in

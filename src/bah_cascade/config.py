@@ -163,13 +163,13 @@ PILOT = DesignConfig(
 
 DEMO = DesignConfig(
     name="DEMO",
-    h_values=(0.8,),
-    p_values=(0.4,),
-    network=NetworkConfig(n1=50, n2=50, m_values=(1,)),
-    cascade=CascadeConfig(phi_values=(0.15,)),
-    replicates=1,
+    h_values=(0.5,),
+    p_values=(0.2,),
+    network=NetworkConfig(n1=250, n2=250, m_values=(1,)),
+    cascade=CascadeConfig(phi_values=(0.1,)),
+    replicates=10,
     design="custom",
-    interventions=((0.2, 0.4),),
+    interventions=((0.2, 0.2), (0.8, 0.2)),
 )
 
 SMOKE = DesignConfig(
