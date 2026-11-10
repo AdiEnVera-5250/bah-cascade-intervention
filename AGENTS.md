@@ -24,9 +24,7 @@ resolve the conflict, stop and ask.
 
 ## Branch
 
-- `restart` is the only working branch. All work is committed there.
-- `main` exists but is not a reference. Do not use it, merge from it, or commit to
-  it.
+- `main` is the only working branch. All work is committed there.
 - Conventional commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`), one topic
   per commit.
 - Never rewrite history or force-push.
