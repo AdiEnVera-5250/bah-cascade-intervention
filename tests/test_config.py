@@ -81,12 +81,12 @@ def test_pilot_interventions_for_include_twenty_four_targets_when_full_design() 
 def test_demo_matches_roadmap_values_when_defined() -> None:
     assert DEMO.network.n1 == 250
     assert DEMO.network.n2 == 250
-    assert DEMO.network.m_values == (1,)
+    assert DEMO.network.m_values == (2,)
     assert DEMO.h_values == (0.5,)
     assert DEMO.p_values == (0.2,)
-    assert DEMO.cascade.phi_values == (0.1,)
-    assert DEMO.replicates == 10
-    assert DEMO.interventions_for(0.5, 0.2) == ((0.2, 0.2), (0.8, 0.2))
+    assert DEMO.cascade.phi_values == (0.15,)
+    assert DEMO.replicates == 100
+    assert DEMO.interventions_for(0.5, 0.2) == ((0.0, 0.2), (1.0, 0.2))
 
 
 def test_smoke_matches_agreed_values_when_defined() -> None:
