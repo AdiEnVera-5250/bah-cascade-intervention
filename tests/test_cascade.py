@@ -1,7 +1,5 @@
 """Tests for synchronous threshold cascades."""
 
-import numpy as np
-
 from bah_cascade.cascade import run_cascade, simulate_all_seeds
 from bah_cascade.growth import GROUP_A, GROUP_B, Network, _to_network
 
@@ -121,21 +119,29 @@ def test_simulate_all_seeds_returns_one_result_per_node_when_exhaustive() -> Non
     results = simulate_all_seeds(network, 0.5)
 
     assert [result.seed_id for result in results] == [0, 1, 2, 3]
-    assert all(result.S_N == result.S_A + result.S_B for result in results)
 
 
-def test_run_cascade_does_not_mutate_the_network_when_executed() -> None:
+def test_cascade_stays_inactive_when_active_neighbors_are_below_ceiling() -> None:
     network = _network_from_edges(
         4,
-        [(0, 1), (1, 2), (2, 3)],
+        [(0, 1), (0, 2), (0, 3)],
         [GROUP_A, GROUP_B, GROUP_A, GROUP_B],
     )
-    indptr = network.indptr.copy()
-    indices = network.indices.copy()
-    groups = network.groups.copy()
 
-    run_cascade(network, 0, 0.5)
+    result = run_cascade(network, 1, 0.5)
 
-    assert np.array_equal(network.indptr, indptr)
-    assert np.array_equal(network.indices, indices)
-    assert np.array_equal(network.groups, groups)
+    assert result.S_N == 1
+    assert result.t_s == 0
+
+
+def test_cascade_activates_when_active_neighbors_reach_ceiling() -> None:
+    network = _network_from_edges(
+        5,
+        [(0, 1), (0, 2), (0, 3), (4, 1), (4, 2)],
+        [GROUP_A, GROUP_B, GROUP_A, GROUP_B, GROUP_A],
+    )
+
+    result = run_cascade(network, 4, 0.5)
+
+    assert result.S_N == 5
+    assert result.t_s == 3

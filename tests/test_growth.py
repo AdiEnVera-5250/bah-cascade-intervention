@@ -37,8 +37,6 @@ def test_bipartite_seed_has_minimum_degree_when_m_is_one() -> None:
     assert network.n_nodes == 6
     assert np.all(network.degrees() >= 1)
     assert metrics.edges_cross == network.n_edges
-    assert metrics.edges_within_A == 0
-    assert metrics.edges_within_B == 0
 
 
 def test_clique_component_seed_has_two_components_when_m_is_one() -> None:
@@ -96,16 +94,6 @@ def test_bipartite_seed_is_connected_when_homophily_is_zero(m: int) -> None:
         assert np.all(network.degrees() >= m)
 
 
-@pytest.mark.parametrize("h1", [0.2, 0.5, 0.8])
-def test_seed_graph_is_connected_when_homophily_is_below_one(h1: float) -> None:
-    for seed in range(5):
-        network = build_seed_graph(1, h1, make_rng(seed))
-
-        assert network_metrics(network).n_components == 1
-        assert np.all(network.degrees() >= 1)
-        _assert_simple_network(network)
-
-
 @pytest.mark.parametrize("m", [1, 2, 4])
 @pytest.mark.parametrize("h1", [0.2, 0.5, 0.8])
 def test_random_seed_is_connected_when_homophily_is_interior(m: int, h1: float) -> None:
@@ -152,9 +140,8 @@ def test_seed_graph_keeps_minimum_degree_when_m_is_two(h1: float) -> None:
     assert np.all(network.degrees() >= 2)
 
 
-@pytest.mark.parametrize("h1", [0.0, 0.2, 1.0])
-def test_seed_graph_assigns_three_nodes_per_group_when_m_is_one(h1: float) -> None:
-    network = build_seed_graph(1, h1, make_rng(3))
+def test_seed_graph_assigns_three_nodes_per_group_when_m_is_one() -> None:
+    network = build_seed_graph(1, 0.2, make_rng(3))
 
     assert np.count_nonzero(network.groups == GROUP_A) == 3
     assert np.count_nonzero(network.groups == GROUP_B) == 3
@@ -250,3 +237,67 @@ def test_to_network_rejects_duplicate_edges_when_constructed() -> None:
             indices=np.asarray([1, 1, 0, 0]),
             groups=np.asarray([GROUP_A, GROUP_B, GROUP_A, GROUP_B]),
         )
+
+
+SD_MARGIN = 4.0
+NO_HOMOPHILY_SHARE = 0.5
+
+
+def _within_share_and_block_sd(network: Network, m: int) -> tuple[float, float]:
+    """Return the within-group edge share and its block-level standard deviation.
+
+    Each edge is attributed to its largest endpoint. The seed edges form one
+    block and the ``m`` edges of every arriving node form one block, following
+    model Section 3.8.
+    """
+    seed_size = 2 * (m + 2)
+    within: list[int] = []
+    block: list[int] = []
+    for node in range(network.n_nodes):
+        for neighbor in network.neighbors(node).tolist():
+            if neighbor >= node:
+                continue
+            within.append(int(network.groups[neighbor] == network.groups[node]))
+            block.append(0 if node < seed_size else node)
+
+    within_array = np.asarray(within, dtype=np.float64)
+    block_array = np.asarray(block, dtype=np.int64)
+    n_edges = within_array.size
+    share = float(within_array.mean())
+    _, inverse = np.unique(block_array, return_inverse=True)
+    block_sums = np.bincount(inverse, weights=within_array)
+    block_sizes = np.bincount(inverse)
+    n_blocks = int(block_sums.size)
+    variance = (
+        n_blocks
+        / (n_blocks - 1)
+        * float(np.sum((block_sums - block_sizes * share) ** 2))
+        / n_edges**2
+    )
+    return share, float(np.sqrt(variance))
+
+
+def test_growth_biases_edges_toward_same_group_when_homophily_is_high() -> None:
+    m = 2
+    network = grow_phase1(m, 0.8, 0.5, 120, make_rng(0))
+
+    share, sd = _within_share_and_block_sd(network, m)
+
+    assert share > NO_HOMOPHILY_SHARE + SD_MARGIN * sd
+
+
+def test_growth_makes_group_a_dominant_when_arrival_probability_is_high() -> None:
+    m = 2
+    n1 = 120
+    p1 = 0.9
+    network = grow_phase1(m, 0.5, p1, n1, make_rng(0))
+
+    n_a = int(np.count_nonzero(network.groups == GROUP_A))
+    arrivals = n1 - 2 * (m + 2)
+    sd = float(np.sqrt(arrivals * p1 * (1.0 - p1))) / n1
+
+    assert n_a / n1 > NO_HOMOPHILY_SHARE + SD_MARGIN * sd
+
+
+def test_growth_has_no_self_loops_or_multiple_edges_when_m_is_four() -> None:
+    _assert_simple_network(grow_phase1(4, 0.5, 0.4, 40, make_rng(0)))

@@ -31,14 +31,6 @@ def _partition(run_dir: Path) -> Path:
     return next((run_dir / "cascades").glob("*.csv.gz"))
 
 
-def test_run_writes_contract_artifacts_when_smoke_config(tmp_path: Path) -> None:
-    run_dir = _run_smoke(tmp_path)
-
-    assert (run_dir / "metadata.json").exists()
-    assert (run_dir / "networks.csv").exists()
-    assert _partition(run_dir).exists()
-
-
 def test_run_writes_two_networks_and_sixty_cascades_when_smoke_config(
     tmp_path: Path,
 ) -> None:

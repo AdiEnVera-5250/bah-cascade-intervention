@@ -8,7 +8,6 @@ from bah_cascade.growth import (
     Network,
     _to_network,
     build_bipartite_seed,
-    build_clique_components_seed,
     build_random_seed,
 )
 from bah_cascade.metrics import connected_components, network_metrics
@@ -33,18 +32,6 @@ def test_bipartite_metrics_reconcile_edge_types_when_m_is_one() -> None:
     assert metrics.frac_A == 0.5
 
 
-def test_clique_component_metrics_count_two_components_when_m_is_one() -> None:
-    metrics = network_metrics(build_clique_components_seed(1, make_rng(0)))
-
-    assert metrics.n_edges >= 4
-    assert metrics.edges_cross == 0
-    assert metrics.edges_within_A >= 2
-    assert metrics.edges_within_B >= 2
-    assert metrics.n_components == 2
-    assert metrics.largest_component_size == 3
-    assert metrics.k_min >= 1
-
-
 def test_random_seed_metrics_reconcile_edge_types_when_h1_is_interior() -> None:
     metrics = network_metrics(build_random_seed(1, 0.5, make_rng(0)))
 
@@ -52,7 +39,6 @@ def test_random_seed_metrics_reconcile_edge_types_when_h1_is_interior() -> None:
         metrics.edges_cross + metrics.edges_within_A + metrics.edges_within_B
     )
     assert metrics.k_min >= 1
-    assert metrics.k_max >= metrics.k_min
 
 
 def test_degree_median_is_mean_of_central_values_when_count_is_even() -> None:

@@ -122,3 +122,10 @@ def test_write_networks_rejects_unsorted_rows_when_ids_decrease(tmp_path: Path) 
 
     with pytest.raises(ValueError):
         write_networks(path, [_network_row(2), _network_row(1)])
+
+
+def test_write_cascades_rejects_unsorted_rows_when_key_decreases(tmp_path: Path) -> None:
+    path = tmp_path / "cascades.csv.gz"
+
+    with pytest.raises(ValueError):
+        write_cascades(path, [_cascade_row(2, 0.1), _cascade_row(1, 0.1)])

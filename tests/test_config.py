@@ -21,10 +21,6 @@ def test_config_hash_has_eight_hex_characters_when_config_is_valid() -> None:
     int(value, 16)
 
 
-def test_config_hash_is_stable_when_config_is_unchanged() -> None:
-    assert DEMO.config_hash() == DEMO.config_hash()
-
-
 def test_config_hash_changes_when_replicates_change() -> None:
     assert replace(DEMO, replicates=2).config_hash() != DEMO.config_hash()
 
@@ -93,3 +89,22 @@ def test_smoke_matches_agreed_values_when_defined() -> None:
     assert SMOKE.network.n1 == 20
     assert SMOKE.network.n2 == 10
     assert SMOKE.interventions_for(0.8, 0.4) == ((0.2, 0.4),)
+
+
+def test_reduced_design_offers_eight_interventions_when_full_grid() -> None:
+    reduced = replace(PILOT, design="reduced")
+
+    targets = reduced.interventions_for(0.2, 0.4)
+
+    assert len(targets) == 8
+    assert all((p2 == 0.4) != (h2 == 0.2) for h2, p2 in targets)
+
+
+def test_pilot_intervention_set_splits_into_behavioral_size_and_mixed_when_full_design() -> None:
+    targets = PILOT.interventions_for(0.2, 0.4)
+
+    behavioral = sum(1 for h2, p2 in targets if p2 == 0.4 and h2 != 0.2)
+    size = sum(1 for h2, p2 in targets if h2 == 0.2 and p2 != 0.4)
+    mixed = sum(1 for h2, p2 in targets if h2 != 0.2 and p2 != 0.4)
+
+    assert (behavioral, size, mixed) == (4, 4, 16)

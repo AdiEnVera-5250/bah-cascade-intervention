@@ -2,7 +2,7 @@
 
 **Version:** 0.5.0
 **Status:** normative
-**Last updated:** 2026-11-08
+**Last updated:** 2026-11-10
 
 This document is the scientific source of truth for the project. If the code and
 this document disagree, this document prevails unless an ADR records an explicit
@@ -279,6 +279,78 @@ generated from the same `G0` with its own independent phase-2 randomness.
   network need not be bipartite. If `h1 = 1` but `h2 < 1`, phase 2 can add
   cross-group edges between the two group components and the final network need
   not be disconnected.
+
+### 3.8 Sampling variability of realized shares
+
+The following formulas describe the sampling variability that follows from the
+model. They are used to set tolerances in tests and add no assumption beyond
+Sections 3.1 to 3.5.
+
+**Group composition.** The seed contributes exactly `m+2` nodes of each group.
+Every arrival is `A` with probability `p`, independently of previous arrivals, so
+after `n` arrivals
+
+$$
+n_A = (m+2) + \mathrm{Binomial}(n, p),
+$$
+
+and, for a phase that grows to `N` nodes with `n = N - 2(m+2)` arrivals,
+
+$$
+\mathrm{sd}\!\left(\frac{n_A}{N}\right) = \frac{\sqrt{n\,p\,(1-p)}}{N}.
+$$
+
+**Within-group edge share.** Edges are not independent: the `m` targets of one
+arrival are drawn sequentially without replacement, and each draw depends on the
+current degrees. The `m` edges of one arrival therefore form a block, and the seed
+edges form one further block. Let `E` be the number of edges of the realized
+network, `Q` the number of blocks (`Q - 1` arrivals plus the seed block), `E_q`
+the number of edges in block `q`, `X_q` the number of edges of block `q` that join
+two nodes of the same group, and
+
+$$
+w = \frac{1}{E}\sum_{q=1}^{Q} X_q
+$$
+
+the realized within-group share. The block-level standard deviation estimator is
+
+$$
+\mathrm{sd}(w) =
+\sqrt{\frac{Q}{Q-1}\,\frac{1}{E^2}
+\sum_{q=1}^{Q}\left(X_q - E_q\,w\right)^2 } .
+$$
+
+**Why the share is estimated this way.** The simple binomial standard deviation
+`sqrt(w(1-w)/E)` would treat every edge as an independent draw. That is too
+optimistic here. The `m` edges of one arrival are decided together from the same
+degree bag: if the first one joins the same group, the remaining draws are more
+likely to do the same, because that group still supplies most of the degree mass.
+Two edges from the same arrival therefore carry less independent information than
+two edges from different arrivals. Treating them as independent would make the
+standard deviation look smaller than it is, and a test built on it would reject
+correct behavior too often.
+
+The estimator keeps each arrival as one sampling unit. For block `q`, the term
+`X_q - E_q w` is the excess of within-group edges with respect to the overall
+share: it is positive when the block is more segregated than the network as a
+whole and negative when it is less. Large blocks weigh more and small blocks
+weigh less, so the sum of squares measures how much the realized share would move
+if whole blocks were resampled. Because each block enters as a single term, the
+dependence among its `m` edges stays inside the term instead of being averaged
+away. The seed is kept as one block for the same reason: its edges are produced
+together by the seed construction, so their composition is also correlated.
+
+The factor `Q/(Q-1)` is the usual correction for evaluating the deviations at the
+estimated share `w` rather than at the unknown expectation. When every block
+contains a single edge (`Q = E`), the expression becomes
+`sqrt(w(1-w)/(E-1))`, the familiar binomial standard deviation. The block
+estimator therefore generalizes the simple formula; it does not replace it with a
+different quantity.
+
+For balanced groups (`p = 0.5` and comparable degree mass per group), a process
+that ignores `h` produces `w ≈ 0.5`, while a process with homophily `h` produces
+`w ≈ h`. The gap between these two values is what allows a test to separate a
+working kernel from one that ignores `h`.
 
 ## 4. Cascade model
 
