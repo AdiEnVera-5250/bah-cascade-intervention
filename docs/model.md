@@ -276,9 +276,13 @@ generated from the same `G0` with its own independent phase-2 randomness.
 - If `h1 = 1`, `G0` is disconnected into the two group components. If `h2 = 1` as
   well, the final network is disconnected.
 - If `h1 = 0` but `h2 > 0`, phase 2 can add within-group edges and the final
-  network need not be bipartite. If `h1 = 1` but `h2 < 1`, phase 2 can add
-  cross-group edges between the two group components and the final network need
-  not be disconnected.
+  network need not be bipartite.
+- If `h1 = 1` but `h2 < 1`, an arrival of one group attaches only to nodes of the
+  other group, and those nodes may lie in either of the two seed components. With
+  `m >= 2` the `m` targets of one arrival are distinct and can span both
+  components, so bridges are possible and the final network need not be
+  disconnected. With `m = 1` every arrival keeps a single edge and no node can
+  join both components, so the network stays disconnected.
 
 ### 3.8 Sampling variability of realized shares
 
