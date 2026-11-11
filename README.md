@@ -9,8 +9,14 @@ statistical analysis of the resulting cascades.
 
 ## Status
 
-Specification stage. The model and the data contracts are normative; no model code
-is implemented yet.
+The deterministic core is implemented: network growth with homophily, the
+two-phase growth intervention, the threshold cascade engine, and the network and
+cascade metrics. The storage and runner layers of the minimum functional pipeline
+are in place, and `notebooks/demo.ipynb` exercises the whole path, from 100 base
+graphs to 250,000 cascades over five phase-2 arms.
+
+The descriptive analysis and the scaled final run are still pending. Phase status
+and exit criteria are tracked in `docs/roadmap.md`.
 
 - `docs/model.md` — network growth, cascade model, experimental design, metrics,
   and analysis plan.
