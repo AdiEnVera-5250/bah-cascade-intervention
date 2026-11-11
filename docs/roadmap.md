@@ -21,6 +21,8 @@ live in `docs/model.md`, Section 8. Artifact details live in
   `networkx` is used for drawing and test cross-checks.
 - Current dependencies are kept. New dependencies require explicit approval.
 - The runner is the only writer of `results/`; analysis writes only to `reports/`.
+- Notebook execution outputs are committed only with explicit authorization for
+  that notebook. Otherwise they are cleared before commit.
 - One commit per phase, Conventional Commits, one topic per commit.
 
 ## 2. Target layout
@@ -60,7 +62,7 @@ bah-cascade-intervention/
 
 `analysis.py` and `notebooks/analysis.ipynb` are added in Phase 3. `notebooks/` is
 a new top-level directory approved by this plan. The notebooks are committed
-without execution outputs.
+without execution outputs unless an explicit authorization keeps them.
 
 ## 3. Phases
 
@@ -150,7 +152,8 @@ Exit criteria:
 - A smoke run writes `metadata.json`, `networks.csv`, and
   `cascades/*.csv.gz`.
 - `validate_run` accepts the smoke run and rejects a corrupted copy.
-- The notebook runs end to end and its outputs are cleared before commit.
+- The notebook runs end to end; its outputs are cleared before commit unless
+  their retention is explicitly authorized.
 - `ruff` and `pytest` pass.
 
 **The minimum functional milestone is reached at the end of this phase.**
