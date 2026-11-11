@@ -141,7 +141,8 @@ Tasks:
 - Integration test with `tmp_path` and a tiny configuration (`N1=20`, `N2=10`).
 - `DEMO` configuration: 100 replicates, `m=2`, `N1=250`, `N2=250`, `h1=0.5`,
   `p1=0.2`, and phase-2 arms `(0.0, 0.2)`, the baseline `(0.5, 0.2)`, and
-  `(1.0, 0.2)`.
+  `(1.0, 0.2)`. The demo notebook extends these arms locally to the full
+  homophily grid without changing `config.py`.
 - `notebooks/demo.ipynb`.
 
 Exit criteria:
@@ -158,36 +159,44 @@ Exit criteria:
 
 **File:** `notebooks/demo.ipynb`.
 
-**Configuration:** `DEMO`, with 100 replicates, `m=2`, `N1=250`, `N2=250`,
-`N=500`, `h1=0.5`, `p1=0.2`, `phi=0.15`, and three phase-2 arms:
-`(0.0, 0.2)`, the baseline `(0.5, 0.2)`, and `(1.0, 0.2)`.
+**Configuration:** `DEMO` for the phase-1 parameters, sizes, and threshold, with
+100 replicates, `m=2`, `N1=250`, `N2=250`, `N=500`, `h1=0.5`, `p1=0.2`, and
+`phi=0.15`. The notebook extends the phase-2 arms locally to the full homophily
+grid `h2 in {0.0, 0.2, 0.5, 0.8, 1.0}` with `p2 = p1 = 0.2`; the baseline
+`(0.5, 0.2)` sits in the center. `config.py` is not modified.
 
 **Content:**
 
 1. Derive 100 base seeds and generate 100 independent `G0` graphs from the
    phase-1 parameters.
-2. From each `G0`, continue growth into the three phase-2 arms using independent
+2. From each `G0`, continue growth into the five phase-2 arms using independent
    intervention seeds.
-3. Run one cascade per node at `phi=0.15` on all 300 networks, for 150,000
+3. Run one cascade per node at `phi=0.15` on all 500 networks, for 250,000
    cascades in total.
-4. Draw a single 1x3 panel with one representative `G0` and its three final
+4. Draw a single 1x5 panel with one representative `G0` and its five final
    networks. Each panel uses its own `spring_layout` coordinates with a
    deterministic seed, so the layout is not shared across the arms. Nodes are
    colored by group and sized proportionally to their degree on a shared scale.
    The representative `G0` is the replicate whose baseline mean `S_N` is closest
    to the median baseline mean across the 100 replicates.
-5. Draw a slope graph of the per-`G0` mean `S_N` across the three arms, and an
-   equivalent slope graph for the median. The arms are ordered by `h2`, so the
-   baseline `(0.5, 0.2)` sits in the center, and the vertical axis is logarithmic.
-6. Draw a 2x3 grid of 10-bin step histograms of `S_N`, normalized to the fraction
+5. Draw a two-panel graph of per-`G0` summaries across the five arms. The left
+   panel shows the per-network probability of a global cascade; the right panel
+   shows the per-network mean `t_s` over global cascades only. The arms are
+   ordered by `h2`, so the baseline `(0.5, 0.2)` sits in the center. A network
+   with no global cascade has no conditional mean, so its line is broken at that
+   arm; the black line is the mean across `G0` over the networks where the
+   quantity is defined.
+6. Draw a 2x5 grid of 10-bin step histograms of `S_N`, normalized to the fraction
    of cascades per bin, with one column per arm: the top row pools all `G0`
    (50,000 cascades per arm) and the bottom row shows the representative `G0`
-   (500 cascades per arm).
+   (500 cascades per arm). Draw an equivalent 2x5 grid for `t_s` restricted to
+   global cascades, using integer-centered bins.
 7. Show a summary table whose rows are the arms and whose columns are metrics:
    the mean, median, interquartile range, and global cascade fraction of `S_N`,
-   plus network topology metrics averaged over the 100 networks of each arm
-   (edges, mean and maximum degree, cross-group edge fraction, number of
-   components, and largest component size).
+   the conditional global-cascade probabilities `P(global | seed in A)` and
+   `P(global | seed in B)`, plus network topology metrics averaged over the 100
+   networks of each arm (edges, mean and maximum degree, cross-group edge
+   fraction, number of components, and largest component size).
 
 The notebook is a descriptive micro-experiment for integration testing. It uses
 the public functions directly, does not call the runner, and does not write a run.
