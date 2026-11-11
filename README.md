@@ -22,6 +22,16 @@ and exit criteria are tracked in `docs/roadmap.md`.
   and analysis plan.
 - `docs/data-contracts.md` — files, columns, keys, invariants, and serialization.
 
+**Next steps (under consideration, not yet decided).** The executed demo notebook
+suggests that per-network means and medians of `S_N` are not fully representative
+of the seed-level cascade distribution, so the Phase 3 analysis plan in
+`docs/model.md`, Section 7, is being re-evaluated: some analyses may be dropped
+and others added before implementation. In parallel, the cascade engine is being
+reviewed for performance, since it is the main computational bottleneck; a faster
+engine would allow more replicates per base graph `G0` in the final run. Both
+lines require further investigation and will be recorded in `docs/` once
+decided.
+
 ## Design at a glance
 
 - Two groups `A` and `B`; a node joins `A` with probability `p`.
